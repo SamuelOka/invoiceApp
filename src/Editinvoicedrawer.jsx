@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { useInvoices } from "./InvoiceContext.jsx";
 
-const defaultItem = () => ({ itemName: "", quantity: 1, price: 0 });
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function inputCls(hasError) {
@@ -29,24 +29,27 @@ function Field({ label, error, children }) {
   );
 }
 
-export default function NewInvoiceDrawer({ onClose, onSave }) {
+export default function EditInvoiceDrawer({ invoice, onClose }) {
+  const { updateInvoice } = useInvoices();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
-    senderStreet: "",
-    senderCity: "",
-    senderPostcode: "",
-    senderCountry: "",
-    clientName: "",
-    clientEmail: "",
-    clientStreet: "",
-    clientCity: "",
-    clientPostcode: "",
-    clientCountry: "",
-    invoiceDate: "",
+    senderStreet: invoice.sender.address.street,
+    senderCity: invoice.sender.address.city,
+    senderPostcode: invoice.sender.address.postcode,
+    senderCountry: invoice.sender.address.country,
+    clientName: invoice.client.name,
+    clientEmail: invoice.client.email,
+    clientStreet: invoice.client.address.street,
+    clientCity: invoice.client.address.city,
+    clientPostcode: invoice.client.address.postcode,
+    clientCountry: invoice.client.address.country,
+    invoiceDate: invoice.dates.invoiceDate,
     paymentTerms: "Net 30 Days",
-    project: "",
+    project: invoice.project,
   });
-  const [items, setItems] = useState([defaultItem()]);
+  const [items, setItems] = useState(
+    invoice.items.map((item) => ({ ...item })),
+  );
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -57,7 +60,10 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
     );
   }
   function addItem() {
-    setItems((prev) => [...prev, defaultItem()]);
+    setItems((prev) => [
+      ...prev,
+      { itemName: "", quantity: 1, price: 0, total: 0 },
+    ]);
   }
   function removeItem(i) {
     setItems((prev) => prev.filter((_, idx) => idx !== i));
@@ -92,24 +98,47 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
 
   const errors = submitted ? getErrors() : {};
   const hasErrors = Object.keys(getErrors()).length > 0;
-  const fieldErrors = submitted
-    ? Object.keys(getErrors()).filter(
-        (k) => !k.startsWith("item_") && k !== "noItems",
-      )
-    : [];
-  const hasItemErrors = submitted
-    ? Object.keys(getErrors()).some((k) => k.startsWith("item_"))
-    : false;
 
-  function handleSave(status) {
-    if (status !== "Draft") {
-      setSubmitted(true);
-      if (hasErrors) return;
-    }
-    onSave?.({
-      ...form,
-      items: items.map((item) => ({ ...item, total: calcTotal(item) })),
-      status,
+  function handleSave() {
+    setSubmitted(true);
+    if (hasErrors) return;
+    const days = parseInt(form.paymentTerms) || 30;
+    const invoiceDate = new Date(form.invoiceDate);
+    const paymentDue = new Date(invoiceDate);
+    paymentDue.setDate(paymentDue.getDate() + days);
+    const updatedItems = items.map((item) => ({
+      ...item,
+      quantity: parseFloat(item.quantity) || 0,
+      price: parseFloat(item.price) || 0,
+      total: calcTotal(item),
+    }));
+    updateInvoice(invoice.id, {
+      project: form.project,
+      sender: {
+        ...invoice.sender,
+        address: {
+          street: form.senderStreet,
+          city: form.senderCity,
+          postcode: form.senderPostcode,
+          country: form.senderCountry,
+        },
+      },
+      client: {
+        name: form.clientName,
+        email: form.clientEmail,
+        address: {
+          street: form.clientStreet,
+          city: form.clientCity,
+          postcode: form.clientPostcode,
+          country: form.clientCountry,
+        },
+      },
+      dates: {
+        invoiceDate: form.invoiceDate,
+        paymentDue: paymentDue.toISOString().split("T")[0],
+      },
+      items: updatedItems,
+      amountDue: updatedItems.reduce((sum, item) => sum + item.total, 0),
     });
     onClose();
   }
@@ -126,7 +155,6 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
           />
         </Field>
       </div>
-      {/* Mobile: City+PostCode 2-col, Country full width. Tablet+: 3-col */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
         <Field label="City" error={errors.senderCity}>
           <input
@@ -333,19 +361,16 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
       </button>
       {submitted && hasErrors && (
         <div className="flex flex-col gap-1 pt-2">
-          {fieldErrors.length > 0 && (
+          {Object.keys(getErrors()).filter(
+            (k) => !k.startsWith("item_") && k !== "noItems",
+          ).length > 0 && (
             <p className="text-xs font-medium text-[#ec5757]">
-              — All fields must be added
+              — All fields must be filled in
             </p>
           )}
           {getErrors().noItems && (
             <p className="text-xs font-medium text-[#ec5757]">
               — {getErrors().noItems}
-            </p>
-          )}
-          {hasItemErrors && (
-            <p className="text-xs font-medium text-[#ec5757]">
-              — Item fields must be valid
             </p>
           )}
         </div>
@@ -354,27 +379,19 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
   );
 
   const Footer = () => (
-    <div className="flex items-center justify-between px-6 md:px-10 py-5 md:py-6 shadow-[0_-4px_16px_rgba(72,84,159,0.1)] bg-white dark:bg-[#141625]">
+    <div className="flex items-center justify-end gap-3 px-6 md:px-10 py-5 md:py-6 shadow-[0_-4px_16px_rgba(72,84,159,0.1)] bg-white dark:bg-[#141625]">
       <button
         onClick={onClose}
         className="px-6 py-3 rounded-full text-sm font-bold bg-[#f9fafe] dark:bg-[#252945] text-[#7e88c3] dark:text-[#dfe3fa] hover:bg-[#dfe3fa] transition-colors border-none cursor-pointer"
       >
-        Discard
+        Cancel
       </button>
-      <div className="flex gap-3">
-        <button
-          onClick={() => handleSave("Draft")}
-          className="px-6 py-3 rounded-full text-sm font-bold bg-[#373b53] hover:bg-[#0c0e16] text-[#888eb0] transition-colors border-none cursor-pointer"
-        >
-          Save as Draft
-        </button>
-        <button
-          onClick={() => handleSave("Pending")}
-          className="px-6 py-3 rounded-full text-sm font-bold bg-[#7c5dfa] hover:bg-[#9277ff] text-white transition-colors border-none cursor-pointer"
-        >
-          Save &amp; Send
-        </button>
-      </div>
+      <button
+        onClick={handleSave}
+        className="px-6 py-3 rounded-full text-sm font-bold bg-[#7c5dfa] hover:bg-[#9277ff] text-white transition-colors border-none cursor-pointer"
+      >
+        Save Changes
+      </button>
     </div>
   );
 
@@ -384,7 +401,8 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
       <div className="md:hidden fixed inset-0 bg-[#f8f8fb] dark:bg-[#141625] z-50 flex flex-col">
         <div className="flex-1 overflow-y-auto px-6 py-8">
           <h2 className="text-2xl font-bold text-[#0c0e16] dark:text-white mb-10">
-            New Invoice
+            Edit <span className="text-[#7e88c3]">#</span>
+            {invoice.id}
           </h2>
           <FormBody />
         </div>
@@ -397,7 +415,8 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
         <div className="fixed top-0 left-[72px] h-full w-[620px] bg-white dark:bg-[#141625] z-50 flex flex-col rounded-r-2xl overflow-hidden shadow-2xl">
           <div className="flex-1 overflow-y-auto px-10 py-10">
             <h2 className="text-2xl font-bold text-[#0c0e16] dark:text-white mb-10">
-              New Invoice
+              Edit <span className="text-[#7e88c3]">#</span>
+              {invoice.id}
             </h2>
             <FormBody />
           </div>

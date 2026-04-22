@@ -1,5 +1,4 @@
 import { createContext, useContext, useState } from "react";
-import { invoices as initialInvoices } from "./data/Invoice";
 
 const STORAGE_KEY = "invoices_data";
 
@@ -8,9 +7,9 @@ function loadFromStorage() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
-    // corrupted storage — fall back to initial data
+    // corrupted data — start fresh
   }
-  return null;
+  return [];
 }
 
 function saveToStorage(invoices) {
@@ -30,13 +29,15 @@ function generateId() {
 const InvoiceContext = createContext(null);
 
 export function InvoiceProvider({ children }) {
-  const [invoices, setInvoices] = useState(
-    () => loadFromStorage() ?? initialInvoices,
-  );
+  const [invoices, setInvoices] = useState(() => loadFromStorage());
 
-  function persist(updated) {
-    setInvoices(updated);
-    saveToStorage(updated);
+  // Always use the functional updater form so we never read stale state
+  function persist(updaterFn) {
+    setInvoices((prev) => {
+      const updated = updaterFn(prev);
+      saveToStorage(updated);
+      return updated;
+    });
   }
 
   function addInvoice(formData) {
@@ -78,21 +79,35 @@ export function InvoiceProvider({ children }) {
       status: formData.status,
     };
 
-    persist([invoice, ...invoices]);
+    persist((prev) => [invoice, ...prev]);
     return invoice;
   }
 
+  function updateInvoice(id, changes) {
+    persist((prev) =>
+      prev.map((inv) => (inv.id === id ? { ...inv, ...changes } : inv)),
+    );
+  }
+
   function updateInvoiceStatus(id, status) {
-    persist(invoices.map((inv) => (inv.id === id ? { ...inv, status } : inv)));
+    persist((prev) =>
+      prev.map((inv) => (inv.id === id ? { ...inv, status } : inv)),
+    );
   }
 
   function deleteInvoice(id) {
-    persist(invoices.filter((inv) => inv.id !== id));
+    persist((prev) => prev.filter((inv) => inv.id !== id));
   }
 
   return (
     <InvoiceContext.Provider
-      value={{ invoices, addInvoice, updateInvoiceStatus, deleteInvoice }}
+      value={{
+        invoices,
+        addInvoice,
+        updateInvoice,
+        updateInvoiceStatus,
+        deleteInvoice,
+      }}
     >
       {children}
     </InvoiceContext.Provider>

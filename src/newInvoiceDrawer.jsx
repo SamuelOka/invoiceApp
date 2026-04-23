@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useInvoices } from "./InvoiceContext.jsx";
+import { useInvoices } from "./invoiceContext.jsx";
 
 const defaultItem = () => ({ itemName: "", quantity: 1, price: 0 });
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

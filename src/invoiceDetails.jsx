@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useInvoices } from "./InvoiceContext.jsx";
+import { useInvoices } from "./invoiceContext.jsx";
 import EditInvoiceDrawer from "./EditInvoiceDrawer.jsx";
 
 function fmtDate(dateStr) {

@@ -1,72 +1,16 @@
-# Invoice App
+# React + Vite
 
-A responsive invoice management app built with React, React Router v6, and Tailwind CSS v4.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
----
+Currently, two official plugins are available:
 
-## Setup
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-```bash
-npm install
-npm install tailwindcss @tailwindcss/vite
-npm run dev
-```
+## React Compiler
 
-Add to `vite.config.js`:
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-```js
-import tailwindcss from "@tailwindcss/vite";
+## Expanding the ESLint configuration
 
-plugins: [react(), tailwindcss()];
-```
-
-Replace `src/index.css` with:
-
-```css
-@import "tailwindcss";
-@variant dark (&:where(.dark, .dark *));
-```
-
----
-
-## Architecture
-
-| Piece                   | Role                                                 |
-| ----------------------- | ---------------------------------------------------- |
-| `InvoiceContext.jsx`    | Global state — reads/writes invoices to localStorage |
-| `App.jsx`               | Layout, dark mode toggle, routes                     |
-| `Invoices.jsx`          | Invoice list with status filter                      |
-| `invoiceDetails.jsx`    | Invoice detail, edit, delete                         |
-| `NewInvoiceDrawer.jsx`  | Create invoice form                                  |
-| `EditInvoiceDrawer.jsx` | Edit invoice form                                    |
-
-Routing is handled by React Router — `/` for the list, `/invoice/:id` for detail. Filter state lives in the URL (`?status=Pending`) so it survives back-navigation.
-
----
-
-## Trade-offs
-
-- **localStorage only** — data doesn't sync across devices or survive a storage clear. A real backend would replace the context's read/write calls without touching any component.
-- **No pagination** — all invoices render in one list. Fine for small datasets, would need virtual scrolling at scale.
-- **Paid invoices are irreversible** — once marked Paid, Edit and Mark as Paid are disabled. Intentional to protect data integrity.
-
----
-
-## Accessibility
-
-- Icon buttons have `aria-label`
-- Status badges use text + colour, not colour alone
-- Disabled buttons have the `disabled` attribute
-- Form labels are associated with their inputs
-- **Known gaps:** the filter dropdown lacks keyboard navigation, the drawer doesn't trap focus
-
----
-
-## Extras (beyond the base requirements)
-
-- localStorage persistence — invoices survive page refresh
-- Dark mode saved to localStorage — theme persists across sessions
-- URL-based filter — `?status=Pending` is bookmarkable
-- Paid invoices lock Edit and Mark as Paid buttons
-- Auto-calculated payment due date from invoice date + payment terms
-- Full mobile layout — horizontal navbar, fixed bottom action bar, full-screen forms
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

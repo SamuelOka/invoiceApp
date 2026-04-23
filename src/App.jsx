@@ -5,7 +5,7 @@ import { Routes, Route } from "react-router-dom";
 
 import "./App.css";
 import Invoices from "./Invoices";
-import InvoiceDetail from "./InvoiceDetails";
+import InvoiceDetail from "./invoiceDetails";
 
 const THEME_KEY = "invoice_theme";
 

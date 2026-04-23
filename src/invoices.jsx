@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useInvoices } from "./invoiceContext.jsx";
-
+import noInvoiceImage from "./assets/noInvoiceImage.png";
 function fmtGBP(n) {
   return (
     "£ " +
@@ -92,7 +92,7 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center flex-1 py-20 gap-8">
       <img
-        src=""
+        src={noInvoiceImage}
         alt="No invoices illustration"
         className="w-[220px] h-[200px] object-contain"
       />

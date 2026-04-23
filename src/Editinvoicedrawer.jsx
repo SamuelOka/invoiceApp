@@ -29,121 +29,20 @@ function Field({ label, error, children }) {
   );
 }
 
-export default function EditInvoiceDrawer({ invoice, onClose }) {
-  const { updateInvoice } = useInvoices();
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    senderStreet: invoice.sender.address.street,
-    senderCity: invoice.sender.address.city,
-    senderPostcode: invoice.sender.address.postcode,
-    senderCountry: invoice.sender.address.country,
-    clientName: invoice.client.name,
-    clientEmail: invoice.client.email,
-    clientStreet: invoice.client.address.street,
-    clientCity: invoice.client.address.city,
-    clientPostcode: invoice.client.address.postcode,
-    clientCountry: invoice.client.address.country,
-    invoiceDate: invoice.dates.invoiceDate,
-    paymentTerms: "Net 30 Days",
-    project: invoice.project,
-  });
-  const [items, setItems] = useState(
-    invoice.items.map((item) => ({ ...item })),
-  );
-
-  function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
-  function setItem(i, field, value) {
-    setItems((prev) =>
-      prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item)),
-    );
-  }
-  function addItem() {
-    setItems((prev) => [
-      ...prev,
-      { itemName: "", quantity: 1, price: 0, total: 0 },
-    ]);
-  }
-  function removeItem(i) {
-    setItems((prev) => prev.filter((_, idx) => idx !== i));
-  }
-  function calcTotal(item) {
-    return (parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0);
-  }
-
-  function getErrors() {
-    const e = {};
-    if (!form.senderStreet.trim()) e.senderStreet = "can't be empty";
-    if (!form.senderCity.trim()) e.senderCity = "can't be empty";
-    if (!form.senderPostcode.trim()) e.senderPostcode = "can't be empty";
-    if (!form.senderCountry.trim()) e.senderCountry = "can't be empty";
-    if (!form.clientName.trim()) e.clientName = "can't be empty";
-    if (!form.clientEmail.trim()) e.clientEmail = "can't be empty";
-    else if (!EMAIL_RE.test(form.clientEmail)) e.clientEmail = "invalid email";
-    if (!form.clientStreet.trim()) e.clientStreet = "can't be empty";
-    if (!form.clientCity.trim()) e.clientCity = "can't be empty";
-    if (!form.clientPostcode.trim()) e.clientPostcode = "can't be empty";
-    if (!form.clientCountry.trim()) e.clientCountry = "can't be empty";
-    if (!form.invoiceDate) e.invoiceDate = "can't be empty";
-    if (!form.project.trim()) e.project = "can't be empty";
-    if (items.length === 0) e.noItems = "An item must be added";
-    items.forEach((item, i) => {
-      if (!item.itemName.trim()) e[`item_${i}_name`] = "can't be empty";
-      if (!(parseFloat(item.quantity) > 0)) e[`item_${i}_qty`] = "invalid";
-      if (!(parseFloat(item.price) >= 0)) e[`item_${i}_price`] = "invalid";
-    });
-    return e;
-  }
-
-  const errors = submitted ? getErrors() : {};
-  const hasErrors = Object.keys(getErrors()).length > 0;
-
-  function handleSave() {
-    setSubmitted(true);
-    if (hasErrors) return;
-    const days = parseInt(form.paymentTerms) || 30;
-    const invoiceDate = new Date(form.invoiceDate);
-    const paymentDue = new Date(invoiceDate);
-    paymentDue.setDate(paymentDue.getDate() + days);
-    const updatedItems = items.map((item) => ({
-      ...item,
-      quantity: parseFloat(item.quantity) || 0,
-      price: parseFloat(item.price) || 0,
-      total: calcTotal(item),
-    }));
-    updateInvoice(invoice.id, {
-      project: form.project,
-      sender: {
-        ...invoice.sender,
-        address: {
-          street: form.senderStreet,
-          city: form.senderCity,
-          postcode: form.senderPostcode,
-          country: form.senderCountry,
-        },
-      },
-      client: {
-        name: form.clientName,
-        email: form.clientEmail,
-        address: {
-          street: form.clientStreet,
-          city: form.clientCity,
-          postcode: form.clientPostcode,
-          country: form.clientCountry,
-        },
-      },
-      dates: {
-        invoiceDate: form.invoiceDate,
-        paymentDue: paymentDue.toISOString().split("T")[0],
-      },
-      items: updatedItems,
-      amountDue: updatedItems.reduce((sum, item) => sum + item.total, 0),
-    });
-    onClose();
-  }
-
-  const FormBody = () => (
+function FormBody({
+  form,
+  set,
+  errors,
+  items,
+  setItem,
+  addItem,
+  removeItem,
+  calcTotal,
+  submitted,
+  hasErrors,
+  getErrors,
+}) {
+  return (
     <>
       <p className="text-xs font-bold text-[#7c5dfa] mb-5">Bill From</p>
       <div className="mb-5">
@@ -359,6 +258,8 @@ export default function EditInvoiceDrawer({ invoice, onClose }) {
       >
         + Add New Item
       </button>
+
+      {/* Error summary — uses props passed from parent */}
       {submitted && hasErrors && (
         <div className="flex flex-col gap-1 pt-2">
           {Object.keys(getErrors()).filter(
@@ -377,8 +278,10 @@ export default function EditInvoiceDrawer({ invoice, onClose }) {
       )}
     </>
   );
+}
 
-  const Footer = () => (
+function Footer({ onClose, handleSave }) {
+  return (
     <div className="flex items-center justify-end gap-3 px-6 md:px-10 py-5 md:py-6 shadow-[0_-4px_16px_rgba(72,84,159,0.1)] bg-white dark:bg-[#141625]">
       <button
         onClick={onClose}
@@ -394,19 +297,150 @@ export default function EditInvoiceDrawer({ invoice, onClose }) {
       </button>
     </div>
   );
+}
+
+export default function EditInvoiceDrawer({ invoice, onClose }) {
+  const { updateInvoice } = useInvoices();
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    senderStreet: invoice.sender.address.street,
+    senderCity: invoice.sender.address.city,
+    senderPostcode: invoice.sender.address.postcode,
+    senderCountry: invoice.sender.address.country,
+    clientName: invoice.client.name,
+    clientEmail: invoice.client.email,
+    clientStreet: invoice.client.address.street,
+    clientCity: invoice.client.address.city,
+    clientPostcode: invoice.client.address.postcode,
+    clientCountry: invoice.client.address.country,
+    invoiceDate: invoice.dates.invoiceDate,
+    paymentTerms: "Net 30 Days",
+    project: invoice.project,
+  });
+  const [items, setItems] = useState(
+    invoice.items.map((item) => ({ ...item })),
+  );
+
+  function set(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+  function setItem(i, field, value) {
+    setItems((prev) =>
+      prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item)),
+    );
+  }
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      { itemName: "", quantity: 1, price: 0, total: 0 },
+    ]);
+  }
+  function removeItem(i) {
+    setItems((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  function calcTotal(item) {
+    return (parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0);
+  }
+
+  function getErrors() {
+    const e = {};
+    if (!form.senderStreet.trim()) e.senderStreet = "can't be empty";
+    if (!form.senderCity.trim()) e.senderCity = "can't be empty";
+    if (!form.senderPostcode.trim()) e.senderPostcode = "can't be empty";
+    if (!form.senderCountry.trim()) e.senderCountry = "can't be empty";
+    if (!form.clientName.trim()) e.clientName = "can't be empty";
+    if (!form.clientEmail.trim()) e.clientEmail = "can't be empty";
+    else if (!EMAIL_RE.test(form.clientEmail)) e.clientEmail = "invalid email";
+    if (!form.clientStreet.trim()) e.clientStreet = "can't be empty";
+    if (!form.clientCity.trim()) e.clientCity = "can't be empty";
+    if (!form.clientPostcode.trim()) e.clientPostcode = "can't be empty";
+    if (!form.clientCountry.trim()) e.clientCountry = "can't be empty";
+    if (!form.invoiceDate) e.invoiceDate = "can't be empty";
+    if (!form.project.trim()) e.project = "can't be empty";
+    if (items.length === 0) e.noItems = "An item must be added";
+    items.forEach((item, i) => {
+      if (!item.itemName.trim()) e[`item_${i}_name`] = "can't be empty";
+      if (!(parseFloat(item.quantity) > 0)) e[`item_${i}_qty`] = "invalid";
+      if (!(parseFloat(item.price) >= 0)) e[`item_${i}_price`] = "invalid";
+    });
+    return e;
+  }
+
+  const errors = submitted ? getErrors() : {};
+  const hasErrors = Object.keys(getErrors()).length > 0;
+
+  function handleSave() {
+    setSubmitted(true);
+    // Compute errors fresh — hasErrors from render may be stale
+    if (Object.keys(getErrors()).length > 0) return;
+    const days = parseInt(form.paymentTerms) || 30;
+    const invoiceDate = new Date(form.invoiceDate);
+    const paymentDue = new Date(invoiceDate);
+    paymentDue.setDate(paymentDue.getDate() + days);
+    const updatedItems = items.map((item) => ({
+      ...item,
+      quantity: parseFloat(item.quantity) || 0,
+      price: parseFloat(item.price) || 0,
+      total: calcTotal(item),
+    }));
+    updateInvoice(invoice.id, {
+      project: form.project,
+      sender: {
+        ...invoice.sender,
+        address: {
+          street: form.senderStreet,
+          city: form.senderCity,
+          postcode: form.senderPostcode,
+          country: form.senderCountry,
+        },
+      },
+      client: {
+        name: form.clientName,
+        email: form.clientEmail,
+        address: {
+          street: form.clientStreet,
+          city: form.clientCity,
+          postcode: form.clientPostcode,
+          country: form.clientCountry,
+        },
+      },
+      dates: {
+        invoiceDate: form.invoiceDate,
+        paymentDue: paymentDue.toISOString().split("T")[0],
+      },
+      items: updatedItems,
+      amountDue: updatedItems.reduce((sum, item) => sum + item.total, 0),
+    });
+    onClose();
+  }
+
+  // Shared props passed down to FormBody so it has everything it needs
+  const formBodyProps = {
+    form,
+    set,
+    errors,
+    items,
+    setItem,
+    addItem,
+    removeItem,
+    calcTotal,
+    submitted,
+    hasErrors,
+    getErrors,
+  };
 
   return (
     <>
-      {/* ── Mobile: full-screen page ── */}
+      {/* ── Mobile: full-screen ── */}
       <div className="md:hidden fixed inset-0 bg-[#f8f8fb] dark:bg-[#141625] z-50 flex flex-col">
         <div className="flex-1 overflow-y-auto px-6 py-8">
           <h2 className="text-2xl font-bold text-[#0c0e16] dark:text-white mb-10">
             Edit <span className="text-[#7e88c3]">#</span>
             {invoice.id}
           </h2>
-          <FormBody />
+          <FormBody {...formBodyProps} />
         </div>
-        <Footer />
+        <Footer onClose={onClose} handleSave={handleSave} />
       </div>
 
       {/* ── Tablet+: slide-in drawer ── */}
@@ -418,9 +452,9 @@ export default function EditInvoiceDrawer({ invoice, onClose }) {
               Edit <span className="text-[#7e88c3]">#</span>
               {invoice.id}
             </h2>
-            <FormBody />
+            <FormBody {...formBodyProps} />
           </div>
-          <Footer />
+          <Footer onClose={onClose} handleSave={handleSave} />
         </div>
       </div>
     </>

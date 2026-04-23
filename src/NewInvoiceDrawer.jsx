@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useInvoices } from "./InvoiceContext.jsx";
 
 const defaultItem = () => ({ itemName: "", quantity: 1, price: 0 });
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,92 +30,22 @@ function Field({ label, error, children }) {
   );
 }
 
-export default function NewInvoiceDrawer({ onClose, onSave }) {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    senderStreet: "",
-    senderCity: "",
-    senderPostcode: "",
-    senderCountry: "",
-    clientName: "",
-    clientEmail: "",
-    clientStreet: "",
-    clientCity: "",
-    clientPostcode: "",
-    clientCountry: "",
-    invoiceDate: "",
-    paymentTerms: "Net 30 Days",
-    project: "",
-  });
-  const [items, setItems] = useState([defaultItem()]);
-
-  function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
-  function setItem(i, field, value) {
-    setItems((prev) =>
-      prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item)),
-    );
-  }
-  function addItem() {
-    setItems((prev) => [...prev, defaultItem()]);
-  }
-  function removeItem(i) {
-    setItems((prev) => prev.filter((_, idx) => idx !== i));
-  }
-  function calcTotal(item) {
-    return (parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0);
-  }
-
-  function getErrors() {
-    const e = {};
-    if (!form.senderStreet.trim()) e.senderStreet = "can't be empty";
-    if (!form.senderCity.trim()) e.senderCity = "can't be empty";
-    if (!form.senderPostcode.trim()) e.senderPostcode = "can't be empty";
-    if (!form.senderCountry.trim()) e.senderCountry = "can't be empty";
-    if (!form.clientName.trim()) e.clientName = "can't be empty";
-    if (!form.clientEmail.trim()) e.clientEmail = "can't be empty";
-    else if (!EMAIL_RE.test(form.clientEmail)) e.clientEmail = "invalid email";
-    if (!form.clientStreet.trim()) e.clientStreet = "can't be empty";
-    if (!form.clientCity.trim()) e.clientCity = "can't be empty";
-    if (!form.clientPostcode.trim()) e.clientPostcode = "can't be empty";
-    if (!form.clientCountry.trim()) e.clientCountry = "can't be empty";
-    if (!form.invoiceDate) e.invoiceDate = "can't be empty";
-    if (!form.project.trim()) e.project = "can't be empty";
-    if (items.length === 0) e.noItems = "An item must be added";
-    items.forEach((item, i) => {
-      if (!item.itemName.trim()) e[`item_${i}_name`] = "can't be empty";
-      if (!(parseFloat(item.quantity) > 0)) e[`item_${i}_qty`] = "invalid";
-      if (!(parseFloat(item.price) >= 0)) e[`item_${i}_price`] = "invalid";
-    });
-    return e;
-  }
-
-  const errors = submitted ? getErrors() : {};
-  const hasErrors = Object.keys(getErrors()).length > 0;
-  const fieldErrors = submitted
-    ? Object.keys(getErrors()).filter(
-        (k) => !k.startsWith("item_") && k !== "noItems",
-      )
-    : [];
-  const hasItemErrors = submitted
-    ? Object.keys(getErrors()).some((k) => k.startsWith("item_"))
-    : false;
-
-  function handleSave(status) {
-    if (status !== "Draft") {
-      setSubmitted(true);
-      if (hasErrors) return;
-    }
-    onSave?.({
-      ...form,
-      items: items.map((item) => ({ ...item, total: calcTotal(item) })),
-      status,
-    });
-    onClose();
-  }
-
-  const FormBody = () => (
+function FormBody({
+  form,
+  set,
+  errors,
+  items,
+  setItem,
+  addItem,
+  removeItem,
+  calcTotal,
+  submitted,
+  hasErrors,
+  fieldErrors,
+  hasItemErrors,
+  getErrors,
+}) {
+  return (
     <>
       <p className="text-xs font-bold text-[#7c5dfa] mb-5">Bill From</p>
       <div className="mb-5">
@@ -126,7 +57,6 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
           />
         </Field>
       </div>
-      {/* Mobile: City+PostCode 2-col, Country full width. Tablet+: 3-col */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
         <Field label="City" error={errors.senderCity}>
           <input
@@ -331,6 +261,8 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
       >
         + Add New Item
       </button>
+
+      {/* Error summary — all values come from props, no undefined references */}
       {submitted && hasErrors && (
         <div className="flex flex-col gap-1 pt-2">
           {fieldErrors.length > 0 && (
@@ -352,43 +284,147 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
       )}
     </>
   );
+}
 
-  const Footer = () => (
-    <div className="flex items-center justify-between px-6 md:px-10 py-5 md:py-6 shadow-[0_-4px_16px_rgba(72,84,159,0.1)] bg-white dark:bg-[#141625]">
+const Footer = ({ onClose, handleSave }) => (
+  <div className="flex items-center justify-between px-6 md:px-10 py-5 md:py-6 shadow-[0_-4px_16px_rgba(72,84,159,0.1)] bg-white dark:bg-[#141625]">
+    <button
+      onClick={onClose}
+      className="px-6 py-3 rounded-full text-sm font-bold bg-[#f9fafe] dark:bg-[#252945] text-[#7e88c3] dark:text-[#dfe3fa] hover:bg-[#dfe3fa] transition-colors border-none cursor-pointer"
+    >
+      Discard
+    </button>
+    <div className="flex gap-3">
       <button
-        onClick={onClose}
-        className="px-6 py-3 rounded-full text-sm font-bold bg-[#f9fafe] dark:bg-[#252945] text-[#7e88c3] dark:text-[#dfe3fa] hover:bg-[#dfe3fa] transition-colors border-none cursor-pointer"
+        onClick={() => handleSave("Draft")}
+        className="px-6 py-3 rounded-full text-sm font-bold bg-[#373b53] hover:bg-[#0c0e16] text-[#888eb0] transition-colors border-none cursor-pointer"
       >
-        Discard
+        Save as Draft
       </button>
-      <div className="flex gap-3">
-        <button
-          onClick={() => handleSave("Draft")}
-          className="px-6 py-3 rounded-full text-sm font-bold bg-[#373b53] hover:bg-[#0c0e16] text-[#888eb0] transition-colors border-none cursor-pointer"
-        >
-          Save as Draft
-        </button>
-        <button
-          onClick={() => handleSave("Pending")}
-          className="px-6 py-3 rounded-full text-sm font-bold bg-[#7c5dfa] hover:bg-[#9277ff] text-white transition-colors border-none cursor-pointer"
-        >
-          Save &amp; Send
-        </button>
-      </div>
+      <button
+        onClick={() => handleSave("Pending")}
+        className="px-6 py-3 rounded-full text-sm font-bold bg-[#7c5dfa] hover:bg-[#9277ff] text-white transition-colors border-none cursor-pointer"
+      >
+        Save &amp; Send
+      </button>
     </div>
-  );
+  </div>
+);
+
+export default function NewInvoiceDrawer({ onClose }) {
+  const { addInvoice } = useInvoices();
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    senderStreet: "",
+    senderCity: "",
+    senderPostcode: "",
+    senderCountry: "",
+    clientName: "",
+    clientEmail: "",
+    clientStreet: "",
+    clientCity: "",
+    clientPostcode: "",
+    clientCountry: "",
+    invoiceDate: "",
+    paymentTerms: "Net 30 Days",
+    project: "",
+  });
+  const [items, setItems] = useState([defaultItem()]);
+
+  function set(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+  function setItem(i, field, value) {
+    setItems((prev) =>
+      prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item)),
+    );
+  }
+  function addItem() {
+    setItems((prev) => [...prev, defaultItem()]);
+  }
+  function removeItem(i) {
+    setItems((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  function calcTotal(item) {
+    return (parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0);
+  }
+
+  function getErrors() {
+    const e = {};
+    if (!form.senderStreet.trim()) e.senderStreet = "can't be empty";
+    if (!form.senderCity.trim()) e.senderCity = "can't be empty";
+    if (!form.senderPostcode.trim()) e.senderPostcode = "can't be empty";
+    if (!form.senderCountry.trim()) e.senderCountry = "can't be empty";
+    if (!form.clientName.trim()) e.clientName = "can't be empty";
+    if (!form.clientEmail.trim()) e.clientEmail = "can't be empty";
+    else if (!EMAIL_RE.test(form.clientEmail)) e.clientEmail = "invalid email";
+    if (!form.clientStreet.trim()) e.clientStreet = "can't be empty";
+    if (!form.clientCity.trim()) e.clientCity = "can't be empty";
+    if (!form.clientPostcode.trim()) e.clientPostcode = "can't be empty";
+    if (!form.clientCountry.trim()) e.clientCountry = "can't be empty";
+    if (!form.invoiceDate) e.invoiceDate = "can't be empty";
+    if (!form.project.trim()) e.project = "can't be empty";
+    if (items.length === 0) e.noItems = "An item must be added";
+    items.forEach((item, i) => {
+      if (!item.itemName.trim()) e[`item_${i}_name`] = "can't be empty";
+      if (!(parseFloat(item.quantity) > 0)) e[`item_${i}_qty`] = "invalid";
+      if (!(parseFloat(item.price) >= 0)) e[`item_${i}_price`] = "invalid";
+    });
+    return e;
+  }
+
+  const errors = submitted ? getErrors() : {};
+  const hasErrors = Object.keys(getErrors()).length > 0;
+  const fieldErrors = submitted
+    ? Object.keys(getErrors()).filter(
+        (k) => !k.startsWith("item_") && k !== "noItems",
+      )
+    : [];
+  const hasItemErrors = submitted
+    ? Object.keys(getErrors()).some((k) => k.startsWith("item_"))
+    : false;
+
+  function handleSave(status) {
+    if (status !== "Draft") {
+      setSubmitted(true);
+      if (hasErrors) return;
+    }
+    addInvoice({
+      ...form,
+      items: items.map((item) => ({ ...item, total: calcTotal(item) })),
+      status,
+    });
+    onClose();
+  }
+
+  // All derived values bundled and passed explicitly — no undefined references in FormBody
+  const formBodyProps = {
+    form,
+    set,
+    errors,
+    items,
+    setItem,
+    addItem,
+    removeItem,
+    calcTotal,
+    submitted,
+    hasErrors,
+    fieldErrors,
+    hasItemErrors,
+    getErrors,
+  };
 
   return (
     <>
-      {/* ── Mobile: full-screen page ── */}
+      {/* ── Mobile: full-screen ── */}
       <div className="md:hidden fixed inset-0 bg-[#f8f8fb] dark:bg-[#141625] z-50 flex flex-col">
         <div className="flex-1 overflow-y-auto px-6 py-8">
           <h2 className="text-2xl font-bold text-[#0c0e16] dark:text-white mb-10">
             New Invoice
           </h2>
-          <FormBody />
+          <FormBody {...formBodyProps} />
         </div>
-        <Footer />
+        <Footer onClose={onClose} handleSave={handleSave} />
       </div>
 
       {/* ── Tablet+: slide-in drawer ── */}
@@ -399,9 +435,9 @@ export default function NewInvoiceDrawer({ onClose, onSave }) {
             <h2 className="text-2xl font-bold text-[#0c0e16] dark:text-white mb-10">
               New Invoice
             </h2>
-            <FormBody />
+            <FormBody {...formBodyProps} />
           </div>
-          <Footer />
+          <Footer onClose={onClose} handleSave={handleSave} />
         </div>
       </div>
     </>

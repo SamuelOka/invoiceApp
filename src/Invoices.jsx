@@ -112,7 +112,7 @@ function EmptyState() {
 }
 
 export default function Invoices() {
-  const { invoices, addInvoice } = useInvoices();
+  const { invoices } = useInvoices();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterOpen, setFilterOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -229,15 +229,7 @@ export default function Invoices() {
         )}
       </div>
 
-      {drawerOpen && (
-        <NewInvoiceDrawer
-          onClose={() => setDrawerOpen(false)}
-          onSave={(formData) => {
-            addInvoice(formData);
-            setDrawerOpen(false);
-          }}
-        />
-      )}
+      {drawerOpen && <NewInvoiceDrawer onClose={() => setDrawerOpen(false)} />}
     </>
   );
 }

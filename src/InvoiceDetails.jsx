@@ -92,14 +92,21 @@ export default function InvoiceDetail() {
   }
 
   const isPaid = invoice.status === "Paid";
+  const isDraft = invoice.status === "Draft";
+  const isPending = invoice.status === "Pending";
 
-  function handleMarkAsPaid() {
-    updateInvoiceStatus(id, "Paid");
+  function handleStatusAction() {
+    if (isDraft) updateInvoiceStatus(id, "Pending");
+    if (isPending) updateInvoiceStatus(id, "Paid");
   }
   function handleConfirmDelete() {
     deleteInvoice(id);
     navigate("/");
   }
+
+  // Button label and availability based on status
+  const statusButtonLabel = isDraft ? "Mark as Pending" : "Mark as Paid";
+  const statusButtonDisabled = isPaid; // Paid is final — no further action
 
   // Shared action buttons
   const ActionButtons = () => (
@@ -122,15 +129,15 @@ export default function InvoiceDetail() {
         Delete
       </button>
       <button
-        onClick={!isPaid ? handleMarkAsPaid : undefined}
-        disabled={isPaid}
+        onClick={!statusButtonDisabled ? handleStatusAction : undefined}
+        disabled={statusButtonDisabled}
         className={`px-5 py-3 rounded-full text-sm font-bold transition-colors border-none ${
-          isPaid
+          statusButtonDisabled
             ? "bg-[#7c5dfa] text-white opacity-50 cursor-not-allowed"
             : "bg-[#7c5dfa] hover:bg-[#9277ff] text-white cursor-pointer"
         }`}
       >
-        Mark as Paid
+        {statusButtonLabel}
       </button>
     </div>
   );

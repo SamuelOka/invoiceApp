@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useInvoices } from "./invoiceContext.jsx";
 
-
 function fmtDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -314,9 +313,7 @@ export default function InvoiceDetail() {
   );
 }
 
-
-
-
+// edit invoice drawer
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -616,7 +613,7 @@ function Footer({ onClose, handleSave }) {
   );
 }
 
-export default function EditInvoiceDrawer({ invoice, onClose }) {
+function EditInvoiceDrawer({ invoice, onClose }) {
   const { updateInvoice } = useInvoices();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
@@ -777,3 +774,5 @@ export default function EditInvoiceDrawer({ invoice, onClose }) {
     </>
   );
 }
+
+// editinvoice drawer

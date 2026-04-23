@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useInvoices } from "./invoiceContext.jsx";
 
-
-
 function fmtGBP(n) {
   return (
     "£ " +
@@ -234,10 +232,6 @@ export default function Invoices() {
     </>
   );
 }
-
-
-
-
 
 // NewDrawer
 
@@ -551,7 +545,7 @@ const Footer = ({ onClose, handleSave }) => (
   </div>
 );
 
-export default function NewInvoiceDrawer({ onClose }) {
+function NewInvoiceDrawer({ onClose }) {
   const { addInvoice } = useInvoices();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
@@ -683,3 +677,5 @@ export default function NewInvoiceDrawer({ onClose }) {
     </>
   );
 }
+
+// new invoiceDrawer

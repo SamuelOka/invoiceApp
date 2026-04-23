@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useInvoices } from "./invoiceContext.jsx";
-import NewInvoiceDrawer from "./NewInvoiceDrawer";
+import NewInvoiceDrawer from "./NewInvoiceDrawer.jsx";
 
 function fmtGBP(n) {
   return (

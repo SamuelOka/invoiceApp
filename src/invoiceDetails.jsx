@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useInvoices } from "./invoiceContext.jsx";
-import EditInvoiceDrawer from "./EditInvoiceDrawer.jsx";
+import EditInvoiceDrawer from "./EditInvoiceDrawer";
 
 function fmtDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-GB", {

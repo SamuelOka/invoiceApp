@@ -5,7 +5,7 @@ import { Routes, Route } from "react-router-dom";
 
 import "./App.css";
 import Invoices from "./Invoices";
-import InvoiceDetail from "./invoiceDetails";
+import InvoiceDetail from "./InvoiceDetails";
 
 const THEME_KEY = "invoice_theme";
 
@@ -55,12 +55,14 @@ function App() {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[#f8f8fb] dark:bg-[#141625] transition-colors duration-300">
+      {/* ── Mobile: horizontal top bar ── */}
       <header className="md:hidden flex items-center justify-between bg-[#373B53] dark:bg-[#1e2139] h-[72px] px-0 sticky top-0 z-30">
         {/* Logo block */}
         <div className="w-[72px] h-[72px] bg-[#7c5dfa] rounded-br-2xl flex items-center justify-center flex-shrink-0">
           <img src={logo} alt="logo" className="w-8 h-8 object-contain" />
         </div>
 
+        {/* Right controls */}
         <div className="flex items-center">
           <button
             onClick={() => setIsDark((d) => !d)}
@@ -78,6 +80,7 @@ function App() {
         </div>
       </header>
 
+      {/* ── Tablet/Desktop: vertical sidebar ── */}
       <aside className="hidden md:flex w-[72px] flex-col items-center bg-[#373B53] dark:bg-[#1e2139] rounded-tr-[20px] rounded-br-[20px] flex-shrink-0 sticky top-0 h-screen z-30">
         <div className="w-[72px] h-[72px] bg-[#7c5dfa] rounded-tr-[20px] flex items-center justify-center flex-shrink-0">
           <img src={logo} alt="logo" className="w-8 h-8 object-contain" />
@@ -99,6 +102,7 @@ function App() {
         </div>
       </aside>
 
+      {/* Page content */}
       <div className="flex-1 min-w-0">
         <Routes>
           <Route path="/" element={<Invoices />} />

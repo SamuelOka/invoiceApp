@@ -4,7 +4,7 @@ import profilePic from "./assets/profilePic.png";
 import { Routes, Route } from "react-router-dom";
 
 import "./App.css";
-import Invoices from "./Invoices";
+import Invoices from "./invoices";
 import InvoiceDetail from "./invoiceDetails";
 
 const THEME_KEY = "invoice_theme";

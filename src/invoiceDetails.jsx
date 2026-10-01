@@ -40,7 +40,7 @@ function DeleteModal({ invoiceId, onCancel, onConfirm }) {
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-50" onClick={onCancel} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1e2139] rounded-2xl p-8 md:p-10 w-[90vw] max-w-[480px] shadow-2xl">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1e2139] rounded-2xl p-8 md:p-10 w-[90vw] max-w-120 shadow-2xl">
         <h2 className="text-xl md:text-2xl font-bold text-[#0c0e16] dark:text-white mb-3">
           Confirm Deletion
         </h2>
